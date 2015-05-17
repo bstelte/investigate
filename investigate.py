@@ -33,7 +33,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pygeoip
 
-#domains = ['set121.com','set133.com','adawareblock.com','mail.ya-support.com','changepassword-yahoo.com']
 domains = [line.strip() for line in open("input.txt", 'r')]
 #print domains
 
