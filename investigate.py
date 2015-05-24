@@ -37,9 +37,7 @@ import pickle
 
 now = str(datetime.datetime.now())
 
-#domains = ['set121.com','set133.com','adawareblock.com','mail.ya-support.com','changepassword-yahoo.com']
 domains = [line.strip() for line in open("input.txt", 'r')]
-#print domains
 
 try:
 	G = pickle.load( open( "investigate_graph.p", "rb" ) )
@@ -192,19 +190,21 @@ for domain in domains:
 
 pickle.dump( G, open( "investigate_graph.p", "wb" ) )
 
-#print(G.nodes())
-#print(G.edges())
+try:
+	#print(G.nodes())
+	#print(G.edges())
 
-#pos=nx.fruchterman_reingold_layout(G)
-#pos=nx.get_node_attributes(G,'pos')
-plt.figure(figsize=(16,16));
-pos=nx.graphviz_layout(G)
-plt.axis('off');
-#nx.draw_networkx(G,pos,node_size=10,font_size=3)
-nx.draw_networkx_edges(G,pos,width=0.3,alpha=0.3)
-nx.draw_networkx_nodes(G,pos,node_color='g',line_width=0.1,node_size=30,alpha=0.3)
-nx.draw_networkx_labels(G,pos,font_size=1)
-plt.savefig("investigate.pdf")
-plt.show
-
+	#pos=nx.fruchterman_reingold_layout(G)
+	#pos=nx.get_node_attributes(G,'pos')
+	plt.figure(figsize=(16,16));
+	pos=nx.graphviz_layout(G)
+	plt.axis('off');
+	#nx.draw_networkx(G,pos,node_size=10,font_size=3)
+	nx.draw_networkx_edges(G,pos,width=0.3,alpha=0.3)
+	nx.draw_networkx_nodes(G,pos,node_color='g',line_width=0.1,node_size=30,alpha=0.3)
+	nx.draw_networkx_labels(G,pos,font_size=1)
+	plt.savefig("investigate.pdf")
+	plt.show
+except:
+	pass
 
