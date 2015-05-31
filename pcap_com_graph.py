@@ -92,7 +92,7 @@ def asndbs(ip, ts):
 	except:
 		print "AS problem with "+ip
 		pass
-	#try:
+	try:
 		#isp = gi.isp_by_addr(ip)
 		#if isinstance(isp, basestring):
 		#	if ("ISP "+isp.lower() not in G.nodes()):
@@ -101,38 +101,38 @@ def asndbs(ip, ts):
 		#		G.add_edge(ip, "ISP "+isp.lower(), date=ts)
 		#		unique = 1
 			#print isp	
-	country = gi.country_code_by_addr(ip)
-	if isinstance(country, basestring):
-		if (country.lower() not in G.nodes()):
-			G.add_node(country.lower(), date=ts)
-		if (not G.has_edge("AS"+str(asn), country.lower())):
-			G.add_edge("AS"+str(asn), country.lower(), date=ts)
-			unique = 1
-			#print country			
-	#except:
-	#	print "GeoIP problem with "+ip
+		country = gi.country_code_by_addr(ip)
+		if isinstance(country, basestring):
+			if (country.lower() not in G.nodes()):
+				G.add_node(country.lower(), date=ts)
+			if (not G.has_edge("AS"+str(asn), country.lower())):
+				G.add_edge("AS"+str(asn), country.lower(), date=ts)
+				unique = 1
+				#print country			
+	except:
+		print "GeoIP problem with "+ip
 	#	pass
 
 def analyse(filepath):
 	f = open(filepath)
 	pcapReader = dpkt.pcap.Reader(f)
-	#try:
-	for ts, data in pcapReader:
-	    ether = dpkt.ethernet.Ethernet(data)
-	    if ether.type != dpkt.ethernet.ETH_TYPE_IP: raise
-	    ip = ether.data
-	    dst = socket.inet_ntoa(ip.dst)
-	    src = socket.inet_ntoa(ip.src)
-	    if (dst not in G.nodes()):
-		G.add_node(dst, date=str(datetime.datetime.utcfromtimestamp(ts)))
-	    if (src not in G.nodes()):
-		G.add_node(src, date=str(datetime.datetime.utcfromtimestamp(ts)))
-	    if (not G.has_edge(src, dst)):
-				G.add_edge(src, dst, date=str(datetime.datetime.utcfromtimestamp(ts)))
-	    asndbs(src, str(datetime.datetime.utcfromtimestamp(ts)))
-	    asndbs(dst, str(datetime.datetime.utcfromtimestamp(ts)))
-	#except:
-	#	pass
+	try:
+		for ts, data in pcapReader:
+		    ether = dpkt.ethernet.Ethernet(data)
+		    if ether.type != dpkt.ethernet.ETH_TYPE_IP: raise
+		    ip = ether.data
+		    dst = socket.inet_ntoa(ip.dst)
+		    src = socket.inet_ntoa(ip.src)
+		    if (dst not in G.nodes()):
+			G.add_node(dst, date=str(datetime.datetime.utcfromtimestamp(ts)))
+		    if (src not in G.nodes()):
+			G.add_node(src, date=str(datetime.datetime.utcfromtimestamp(ts)))
+		    if (not G.has_edge(src, dst)):
+					G.add_edge(src, dst, date=str(datetime.datetime.utcfromtimestamp(ts)))
+		    asndbs(src, str(datetime.datetime.utcfromtimestamp(ts)))
+		    asndbs(dst, str(datetime.datetime.utcfromtimestamp(ts)))
+	except:
+		pass
 	#	print "file has to be in libpcap format - editcap -F libpcap test.pcapng test.pcap may help"
 
 def Run():
