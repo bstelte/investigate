@@ -172,7 +172,7 @@ def Run():
 
     except:
         raise
-
+print "pcap_com_graph - (c)2015 Bjoern Stelte - "
 Run()
 
 

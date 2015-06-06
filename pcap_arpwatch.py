@@ -24,6 +24,8 @@ import time
 import os
 import logging
 import datetime
+import pyasn
+import pygeoip
 
 macaddress=[]
 
@@ -41,9 +43,17 @@ l= logging.getLogger('Session')
 l.addHandler(logging.FileHandler(Filename,'a'))
 
 if options.fname is None and options.dir_path is None :
-    print '\n\033[1m\033[31m -f or -d or -i mandatory option missing.\033[0m\n'
+    print '\n\033[1m\033[31m -f or -d mandatory option missing.\033[0m\n'
     parser.print_help()
     exit(-1)
+
+try:
+	asndb = pyasn.pyasn('ipasn.dat')
+	gi = pygeoip.GeoIP('GeoIP.dat')
+except:
+	print "You need ipasn.dat (pygeoip) and GeoIP.dat (maxmind db) to start this program"
+	print "file has to be in libpcap format - editcap -F libpcap test.pcapng test.pcap may help"
+	#exit(1)
 
 def add_colons_to_mac( mac_addr ) :
     s = list()
@@ -66,7 +76,15 @@ def analyse(filepath):
 		    add=dst+", "+dstmax
 		    if not add in macaddress:
 			macaddress.append(add)
-			l.warning(add+", "+filepath+", "+str(datetime.datetime.utcfromtimestamp(ts)))
+			try:
+				prefix = asndb.lookup(ip)[1]
+				asn = asndb.lookup(ip)[0]
+				country = gi.country_code_by_addr(ip)
+			except:
+				prefix = "na"
+				asn = "na"
+				country ="na"
+			l.warning(add+", "+filepath+", "+str(datetime.datetime.utcfromtimestamp(ts))+", "+prefix+", "+asn+", "+country+" ")
 	except:
 		pass
 	#	print "file has to be in libpcap format - editcap -F libpcap test.pcapng test.pcap may help"
@@ -108,7 +126,7 @@ def Run():
 
     except:
         raise
-
+print "pcap_arpwatch - (c)2015 Bjoern Stelte - "
 Run()
 
 for address in macaddress:

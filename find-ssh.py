@@ -32,6 +32,8 @@ import threading
 import time
 from base64 import b64decode
 from threading import Thread
+import pyasn
+import pygeoip
 
 def ShowWelcome():
     Message = 'find ssh connections'
@@ -51,6 +53,14 @@ if options.fname is None and options.dir_path is None and options.interface is N
     print '\n\033[1m\033[31m -f or -d or -i mandatory option missing.\033[0m\n'
     parser.print_help()
     exit(-1)
+
+try:
+	asndb = pyasn.pyasn('ipasn.dat')
+	gi = pygeoip.GeoIP('GeoIP.dat')
+except:
+	print "You need ipasn.dat (pygeoip) and GeoIP.dat (maxmind db) to start this program"
+	print "file has to be in libpcap format - editcap -F libpcap test.pcapng test.pcap may help"
+	#exit(1)
 
 ShowWelcome()
 Verbose = options.Verbose
@@ -293,10 +303,18 @@ def Run():
 
 	l.warning("IP-Address")
 	for ip in ipaddress:
-		l.warning(ip)
+		try:
+			prefix = asndb.lookup(ip)[1]
+			asn = asndb.lookup(ip)[0]
+			country = gi.country_code_by_addr(ip)
+		except:
+			prefix = "na"
+			asn = "na"
+			country ="na"
+		l.warning(ip+", "+prefix+", "+asn+", "+country+" ")
 
     except:
         raise
-
+print "find-ssh - (c)2015 Bjoern Stelte - "
 Run()
 
