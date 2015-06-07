@@ -51,7 +51,7 @@ dir_path = options.dir_path
 
 
 try:
-	G = pickle.load( open( "investigate_graph.p", "rb" ) )
+	G = pickle.load( open( "pcap_com_graph.p", "rb" ) )
 	
 except:
 	#print "No old Graph found!"
@@ -84,14 +84,17 @@ def asndbs(ip, ts):
 		asn = asndb.lookup(ip)[0]
 		if isinstance(asn, int):
 			if (asn not in G.nodes()):	
-				G.add_node("AS"+str(asn), date=ts)
+				G.add_node("AS"+str(asn), type="asn")
 			if (not G.has_edge(prefix, "AS"+str(asn))):
-				G.add_edge(prefix, "AS"+str(asn), date=ts)
+				G.add_edge(prefix, "AS"+str(asn))
 				unique = 1
 			#print asn
+		return asn
 	except:
 		print "AS problem with "+ip
 		pass
+
+def country(ip, asn, ts):
 	try:
 		#isp = gi.isp_by_addr(ip)
 		#if isinstance(isp, basestring):
@@ -104,35 +107,38 @@ def asndbs(ip, ts):
 		country = gi.country_code_by_addr(ip)
 		if isinstance(country, basestring):
 			if (country.lower() not in G.nodes()):
-				G.add_node(country.lower(), date=ts)
+				G.add_node(country.lower(), type="country")
 			if (not G.has_edge("AS"+str(asn), country.lower())):
-				G.add_edge("AS"+str(asn), country.lower(), date=ts)
+				G.add_edge("AS"+str(asn), country.lower())
 				unique = 1
 				#print country			
 	except:
 		print "GeoIP problem with "+ip
-	#	pass
+		pass
 
 def analyse(filepath):
 	f = open(filepath)
 	pcapReader = dpkt.pcap.Reader(f)
-	try:
-		for ts, data in pcapReader:
-		    ether = dpkt.ethernet.Ethernet(data)
-		    if ether.type != dpkt.ethernet.ETH_TYPE_IP: raise
-		    ip = ether.data
-		    dst = socket.inet_ntoa(ip.dst)
-		    src = socket.inet_ntoa(ip.src)
-		    if (dst not in G.nodes()):
-			G.add_node(dst, date=str(datetime.datetime.utcfromtimestamp(ts)))
-		    if (src not in G.nodes()):
-			G.add_node(src, date=str(datetime.datetime.utcfromtimestamp(ts)))
-		    if (not G.has_edge(src, dst)):
-					G.add_edge(src, dst, date=str(datetime.datetime.utcfromtimestamp(ts)))
-		    asndbs(src, str(datetime.datetime.utcfromtimestamp(ts)))
-		    asndbs(dst, str(datetime.datetime.utcfromtimestamp(ts)))
-	except:
-		pass
+	#try:
+	for ts, data in pcapReader:
+	    ether = dpkt.ethernet.Ethernet(data)
+	    if ether.type != dpkt.ethernet.ETH_TYPE_IP: raise
+	    ip = ether.data
+	    dst = socket.inet_ntoa(ip.dst)
+	    src = socket.inet_ntoa(ip.src)
+	    if (dst not in G.nodes()):
+		G.add_node(dst, date=str(datetime.datetime.utcfromtimestamp(ts)), type="dst")
+		#asn=asndbs(dst, str(datetime.datetime.utcfromtimestamp(ts)))
+		#country(dst, asn, str(datetime.datetime.utcfromtimestamp(ts)))
+	    if (src not in G.nodes()):
+		G.add_node(src, date=str(datetime.datetime.utcfromtimestamp(ts)), type="src")
+		#asn=asndbs(src, str(datetime.datetime.utcfromtimestamp(ts)))
+	        #country(src, asn, str(datetime.datetime.utcfromtimestamp(ts)))
+	    if (not G.has_edge(src, dst)):
+		G.add_edge(src, dst, date=str(datetime.datetime.utcfromtimestamp(ts)))
+		    
+	#except:
+	#	pass
 	#	print "file has to be in libpcap format - editcap -F libpcap test.pcapng test.pcap may help"
 
 def Run():
@@ -175,8 +181,15 @@ def Run():
 print "pcap_com_graph - (c)2015 Bjoern Stelte - "
 Run()
 
-
 try:
+
+	for node,data in G.nodes_iter(data=True):
+	     if isinstance(data, dict):
+	    	if "type" in data:
+			if (data['type'] == "src"):
+				for n in G[node]:			  
+					print node+" -> "+n+", "+str(gi.country_code_by_addr(n))+", AS"+str(asndb.lookup(n)[0])+", "+str(asndb.lookup(n)[1])+", "+data['date']	
+
 	plt.figure(figsize=(16,16));
 	pos=nx.graphviz_layout(G)
 	plt.axis('off');
