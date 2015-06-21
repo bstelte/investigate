@@ -1,6 +1,7 @@
 import PyPDF2, os
 
 searchs = [line.strip() for line in open("input.txt", 'r')]
+list = []
 
 # Get all the PDF filenames.
 pdfFiles = []
@@ -18,5 +19,9 @@ for filename in pdfFiles:
 		for search in searchs:
 			if isinstance(search, basestring):
 				if (text.find(search) > 0):
-					print search+" : "+filename
+					output = search+" : "+filename
+					if not output in list:
+						list.append(output)
 
+for entry in list:
+	print entry
