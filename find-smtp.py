@@ -82,7 +82,8 @@ l.addHandler(logging.FileHandler(Filename,'a'))
 
 mail_try = {}
 mail_success = {}
-ipaddress = []
+ipaddress_src = []
+ipaddress_dst = []
 
 def PrintPacket(Filename,Message):
     if Verbose == True:
@@ -160,10 +161,10 @@ def Print_Packet_Details(decoded,SrcPort,DstPort,ts2):
     #print decoded['data']
     if "RCPT TO:" in decoded['data']:
 	try:
-		mail_try[decoded['source_address'],mp.epoch2num(ts2)] += 1
+		mail_try[decoded['source_address'],int(mp.epoch2num(ts2))] += 1
 	except:
-		mail_try[decoded['source_address'],mp.epoch2num(ts2)] = 1
-    	try:
+		mail_try[decoded['source_address'],int(mp.epoch2num(ts2))] = 1  	
+	try:
 		match = re.search(r"\w+@\w+\.\w+", decoded['data'])		
 		return '%sprotocol: %s %s:%s > %s:%s  %s RCPT TO: %s' % (ts, protocols[decoded['protocol']],decoded['source_address'],SrcPort,decoded['destination_address'], DstPort, str(datetime.datetime.utcfromtimestamp(ts2)), match.group())
     	except:
@@ -187,14 +188,16 @@ def ParseDataRegex(decoded, SrcPort, DstPort, timestamp):
 #    if DstPort == 25 :
 #        Message = Print_Packet_Details(decoded,SrcPort,DstPort, timestamp)
 #        l.warning(Message)
-#	if not decoded['source_address'] in ipaddress:
-#		ipaddress.append(decoded['source_address'])
+#	if not decoded['source_address'] in ipaddress_src:
+#		ipaddress_src.append(decoded['source_address'])
     if DstPort == 25 :
         Message = Print_Packet_Details(decoded,SrcPort,DstPort, timestamp)
         if (len(Message) > 1):
 		l.warning(Message)
-        if not decoded['destination_address'] in ipaddress:
-		ipaddress.append(decoded['destination_address'])
+        if not decoded['destination_address'] in ipaddress_dst:
+		ipaddress_dst.append(decoded['destination_address'])
+	if not decoded['source_address'] in ipaddress_src:
+		ipaddress_src.append(decoded['source_address'])
     
 
 def Print_Packet_Cooked(pktlen, data, timestamp):
@@ -328,7 +331,7 @@ def Run():
             decode_file(fname,'')
 
 	l.warning("DST IP-Address")
-	for ip in ipaddress:
+	for ip in ipaddress_src:
 		if isinstance(ip, basestring):
 			try:
 				prefix = asndb.lookup(ip)[1]
@@ -353,19 +356,28 @@ srcs = [q[0] for q in mail_try]
 for s in mail_try:
 	values.append(mail_try[s])	
 
-yearsFmt = DateFormatter('%d.%m.%Y')
+for ip in ipaddress_src:
+	print "... figure findSMTP_"+ip+".png "
+	pic_values = []
+	pic_dates = []
+	gen = (i for i,x in enumerate(srcs) if x == ip)
+	for i in gen: 
+		#print i
+		pic_values.append(values[i])
+		pic_dates.append(dates[i])
 
-fig, ax = plt.subplots()
-ax.plot_date(dates, values, '--bo')
-ax.xaxis.set_major_formatter(yearsFmt)
-ax.autoscale_view()
-ax.fmt_xdata = DateFormatter('%d.%m.%Y')
-ax.grid(True)
-ax.set_title('SMTP')
-ax.set_ylabel('connections')
-#plt.ylim((0,5))
-fig.tight_layout()
-fig.autofmt_xdate(rotation=45)
-#plt.show()
-pylab.savefig('findSMTP.png', bbox_inches='tight')
+	yearsFmt = DateFormatter('%d.%m.%Y')
+	fig, ax = plt.subplots()
+	ax.plot_date(pic_dates, pic_values, '--bo')
+	ax.xaxis.set_major_formatter(yearsFmt)
+	ax.autoscale_view()
+	ax.fmt_xdata = DateFormatter('%d.%m.%Y')
+	ax.grid(True)
+	ax.set_title('SMTP '+ip)
+	ax.set_ylabel('connections')
+	#plt.ylim((0,5))
+	fig.tight_layout()
+	fig.autofmt_xdate(rotation=45)
+	#plt.show()
+	pylab.savefig('findSMTP_'+ip+'.png', bbox_inches='tight')
 
