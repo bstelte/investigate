@@ -174,7 +174,8 @@ def Run():
             if Seconds<60:
                 Message = '\n%s parsed in: %.3g seconds (%s).\n'%(fname, Seconds, FileSize)
                 print Message
-               
+              
+	    pickle.dump( G, open( "pcap_com_graph.p", "wb" ) ) 
 
     except:
         raise
