@@ -40,6 +40,7 @@ import pygeoip
 import re
 import matplotlib.dates as mp
 import pylab
+import pickle
 
 def ShowWelcome():
     Message = 'find smtp connections'
@@ -80,10 +81,16 @@ Filename = str(os.path.join(os.path.dirname(__file__),"findSMTP-Session.log"))
 l= logging.getLogger('SMTP-Session')
 l.addHandler(logging.FileHandler(Filename,'a'))
 
-mail_try = {}
-mail_success = {}
-ipaddress_src = []
-ipaddress_dst = []
+try:
+	mail_try = pickle.load( open( "find-smtp-mail_try.p", "rb" ) )
+	mail_success = pickle.load( open( "find-smtp-mail_success.p", "rb" ) )
+	ipaddress_src = pickle.load( open( "find-smtp-ipaddress_src.p", "rb" ) )
+	ipaddress_dst = pickle.load( open( "find-smtp-ipaddress_dst.p", "rb" ) )
+except:
+	mail_try = {}
+	mail_success = {}
+	ipaddress_src = []
+	ipaddress_dst = []
 
 def PrintPacket(Filename,Message):
     if Verbose == True:
@@ -165,19 +172,19 @@ def Print_Packet_Details(decoded,SrcPort,DstPort,ts2):
 	except:
 		mail_try[decoded['source_address'],int(mp.epoch2num(ts2))] = 1  	
 	try:
-		match = re.search(r"\w+@\w+\.\w+", decoded['data'])		
+		match = re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", decoded['data'])		
 		return '%sprotocol: %s %s:%s > %s:%s  %s RCPT TO: %s' % (ts, protocols[decoded['protocol']],decoded['source_address'],SrcPort,decoded['destination_address'], DstPort, str(datetime.datetime.utcfromtimestamp(ts2)), match.group())
     	except:
 		return '%s%s:%s > %s:%s  %s RCPT TO: %s' % (ts,decoded['source_address'],SrcPort,decoded['destination_address'], DstPort, str(datetime.datetime.utcfromtimestamp(ts2)), match.group())
     if "MAIL FROM:" in decoded['data']:
     	try:
-		match = re.search(r"\w+@\w+\.\w+", decoded['data'])
+		match = re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", decoded['data'])
 		return '%sprotocol: %s %s:%s > %s:%s  %s MAIL FROM: %s' % (ts, protocols[decoded['protocol']],decoded['source_address'],SrcPort,decoded['destination_address'], DstPort, str(datetime.datetime.utcfromtimestamp(ts2)), match.group())
     	except:
 		return '%s%s:%s > %s:%s  %s MAIL FROM: %s' % (ts,decoded['source_address'],SrcPort,decoded['destination_address'], DstPort, str(datetime.datetime.utcfromtimestamp(ts2)), match.group())
     if "From: " in decoded['data']:
     	try:
-		match = re.findall(r"\w+@\w+\.\w+", decoded['data'])
+		match = re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", decoded['data'])
 		return '%sprotocol: %s %s:%s > %s:%s  %s mail body from / to: %s - %s' % (ts, protocols[decoded['protocol']],decoded['source_address'],SrcPort,decoded['destination_address'], DstPort, str(datetime.datetime.utcfromtimestamp(ts2)), match[0], match[1])
     	except:
 		return '%s%s:%s > %s:%s  %s mail body from / to: %s - %s' % (ts,decoded['source_address'],SrcPort,decoded['destination_address'], DstPort, str(datetime.datetime.utcfromtimestamp(ts2)), match[0], match[1])
@@ -190,7 +197,7 @@ def ParseDataRegex(decoded, SrcPort, DstPort, timestamp):
 #        l.warning(Message)
 #	if not decoded['source_address'] in ipaddress_src:
 #		ipaddress_src.append(decoded['source_address'])
-    if DstPort == 25 :
+    if ((DstPort == 25) or (DstPort == 465) or (DstPort == 587)) :
         Message = Print_Packet_Details(decoded,SrcPort,DstPort, timestamp)
         if (len(Message) > 1):
 		l.warning(Message)
@@ -241,7 +248,7 @@ def decode_file(fname,res):
             p.open_live(interface, 1600, 0, 100)
             Message = " live capture started, using:%s\nStarting timestamp (%s) corresponds to %s"%(interface, time.time(), time.strftime('%x %X'))
             print Message
-            l.warning(Message)
+            #l.warning(Message)
             while 1:
                 p.dispatch(1, Print_Packet_Tcpdump)
         except (KeyboardInterrupt, SystemExit):
@@ -251,7 +258,7 @@ def decode_file(fname,res):
         try:
             p = pcap.pcapObject()
             p.open_offline(fname)
-            l.warning('\n\n started, using:%s file'%(fname))
+            #l.warning('\n\n started, using:%s file'%(fname))
             Version = IsCookedPcap(res)
             if Version == 1:
                 thread = Thread(target = p.dispatch, args = (0, Print_Packet_Cooked))
@@ -305,11 +312,11 @@ def Run():
                         minutes = Seconds/60
                         Message = '\n%s parsed in: %.3g minutes (%s).\n'%(FilePath, minutes, FileSize)
                         print Message
-                        l.warning(Message)
+                        #l.warning(Message)
                     if Seconds<60:
                         Message = '\n%s parsed in: %.3g seconds (%s).\n'%(FilePath, Seconds, FileSize)
                         print Message
-                        l.warning(Message)
+                        #l.warning(Message)
 
         if fname != None:
             p = subprocess.Popen(["file", fname], stdout=subprocess.PIPE)
@@ -321,11 +328,11 @@ def Run():
                 minutes = Seconds/60
                 Message = '\n%s parsed in: %.3g minutes (%s).\n'%(fname, minutes, FileSize)
                 print Message
-                l.warning(Message)
+                #l.warning(Message)
             if Seconds<60:
                 Message = '\n%s parsed in: %.3g seconds (%s).\n'%(fname, Seconds, FileSize)
                 print Message
-                l.warning(Message)
+                #l.warning(Message)
 
         if interface != None:
             decode_file(fname,'')
@@ -368,7 +375,7 @@ for ip in ipaddress_src:
 
 	yearsFmt = DateFormatter('%d.%m.%Y')
 	fig, ax = plt.subplots()
-	ax.plot_date(pic_dates, pic_values, '--bo')
+	ax.plot_date(pic_dates, pic_values, 'bo')	
 	ax.xaxis.set_major_formatter(yearsFmt)
 	ax.autoscale_view()
 	ax.fmt_xdata = DateFormatter('%d.%m.%Y')
@@ -380,4 +387,9 @@ for ip in ipaddress_src:
 	fig.autofmt_xdate(rotation=45)
 	#plt.show()
 	pylab.savefig('findSMTP_'+ip+'.png', bbox_inches='tight')
+
+pickle.dump( mail_try, open( "find-smtp-mail_try.p", "wb" ) )
+pickle.dump( mail_success, open( "find-smtp-mail_success.p", "wb" ) )
+pickle.dump( ipaddress_src, open( "find-smtp-ipaddress_src.p", "wb" ) )
+pickle.dump( ipaddress_dst, open( "find-smtp-ipaddress_dst.p", "wb" ) )
 
