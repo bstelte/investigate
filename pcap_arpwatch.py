@@ -28,6 +28,7 @@ import pyasn
 import pygeoip
 
 macaddress=[]
+count={}
 
 parser = argparse.ArgumentParser(description=' ')
 m_group=parser.add_mutually_exclusive_group()
@@ -85,6 +86,9 @@ def analyse(filepath):
 				asn = "na"
 				country ="na"
 			l.warning(add+", "+filepath+", "+str(datetime.datetime.utcfromtimestamp(ts))+", "+prefix+", "+asn+", "+country+" ")
+		    if not dst in count:
+			count[dst]=0
+		    count[dst]+=1
 	except:
 		pass
 	#	print "file has to be in libpcap format - editcap -F libpcap test.pcapng test.pcap may help"
@@ -131,3 +135,8 @@ Run()
 
 for address in macaddress:
 	print address
+
+print
+
+for c,v in count.items():
+	print "ip: "+str(c)+"    packets: "+str(v)
